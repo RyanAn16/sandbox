@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+data/
+ledger/
+reports/
+reports_round2/
+*.sqlite
+.DS_Store
