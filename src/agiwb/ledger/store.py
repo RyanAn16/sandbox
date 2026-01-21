@@ -1,12 +1,11 @@
 """SQLite ledger helpers."""
 from __future__ import annotations
 
-import json
 import sqlite3
 from pathlib import Path
 from typing import Iterable, Optional, List, Dict, Any
 
-from agiwb.ledger.schema import RUNS_TABLE, CASES_TABLE
+from agiwb.ledger.schema import RUNS_TABLE, EVENTS_TABLE
 
 
 class LedgerStore:
@@ -15,7 +14,7 @@ class LedgerStore:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._connection = sqlite3.connect(self.path)
         self._connection.execute(RUNS_TABLE)
-        self._connection.execute(CASES_TABLE)
+        self._connection.execute(EVENTS_TABLE)
         self._connection.commit()
 
     def add_run(self, run_id: str, total: int, matched: int) -> None:
@@ -25,25 +24,34 @@ class LedgerStore:
         )
         self._connection.commit()
 
-    def add_cases(self, run_id: str, cases: Iterable[Dict[str, Any]]) -> None:
+    def add_event(self, run_id: str, test_id: str, text: str, rule_id: Optional[str], matched: bool) -> None:
+        self._connection.execute(
+            "INSERT INTO events (run_id, test_id, text, rule_id, matched) VALUES (?, ?, ?, ?, ?)",
+            (run_id, test_id, text, rule_id, 1 if matched else 0),
+        )
+        self._connection.commit()
+
+    def add_events(self, run_id: str, events: Iterable[Dict[str, Any]]) -> None:
         payload = [
             (
                 run_id,
-                case["case_id"],
-                case.get("text", ""),
-                1 if case.get("matched") else 0,
-                json.dumps(case.get("matched_rule_ids", [])),
+                event["test_id"],
+                event.get("text", ""),
+                event.get("rule_id"),
+                1 if event.get("matched") else 0,
             )
-            for case in cases
+            for event in events
         ]
         self._connection.executemany(
-            "INSERT INTO cases (run_id, case_id, text, matched, matched_rule_ids) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO events (run_id, test_id, text, rule_id, matched) VALUES (?, ?, ?, ?, ?)",
             payload,
         )
         self._connection.commit()
 
-    def fetch_cases(self, matched: Optional[bool] = None, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        query = "SELECT run_id, case_id, text, matched, matched_rule_ids, created_at FROM cases"
+    def fetch_events(
+        self, matched: Optional[bool] = None, limit: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        query = "SELECT run_id, test_id, text, rule_id, matched, created_at FROM events"
         params: List[Any] = []
         if matched is not None:
             query += " WHERE matched = ?"
@@ -55,14 +63,14 @@ class LedgerStore:
         cursor = self._connection.execute(query, params)
         rows = cursor.fetchall()
         results = []
-        for run_id, case_id, text, matched_value, matched_rule_ids, created_at in rows:
+        for run_id, test_id, text, rule_id, matched_value, created_at in rows:
             results.append(
                 {
                     "run_id": run_id,
-                    "case_id": case_id,
+                    "test_id": test_id,
                     "text": text,
+                    "rule_id": rule_id,
                     "matched": bool(matched_value),
-                    "matched_rule_ids": json.loads(matched_rule_ids),
                     "created_at": created_at,
                 }
             )

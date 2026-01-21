@@ -33,19 +33,23 @@ def write_incremental_rules(records: Iterable[Dict[str, Any]], output_path: str 
 
 def induce_rules(ledger_path: str | Path, seed_rules: str | Path, output_path: str | Path) -> Dict[str, Any]:
     seed_rule_entries = load_rules([seed_rules])
-    seed_terms = {rule.get("contains", "").lower() for rule in seed_rule_entries}
+    seed_terms = {
+        rule.get("contains", "").lower()
+        for rule in seed_rule_entries
+        if rule.get("contains")
+    }
 
     with LedgerStore(ledger_path) as store:
-        unmatched_cases = store.fetch_cases(matched=False)
+        unmatched_events = store.fetch_events(matched=False)
 
     token_counts = Counter()
-    for case in unmatched_cases:
-        for token in _tokenize(case.get("text", "")):
+    for event in unmatched_events:
+        for token in _tokenize(event.get("text", "")):
             if token in seed_terms:
                 continue
             token_counts[token] += 1
 
-    candidates = [token for token, _count in token_counts.most_common()]
+    candidates = [token for token, count in token_counts.most_common() if count >= 2]
     approved = candidates[:10]
 
     rules = [

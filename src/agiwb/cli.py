@@ -6,6 +6,7 @@ import argparse
 from agiwb.pipeline import run_eval, run_pipeline
 from agiwb.reflection.rule_induction import write_incremental_rules, induce_rules
 from agiwb.reflection.synth import synthesize_cases
+from agiwb.workspace import get_workspace_home
 
 
 def eval_command(args: argparse.Namespace) -> int:
@@ -13,6 +14,18 @@ def eval_command(args: argparse.Namespace) -> int:
     if args.write_incremental:
         write_incremental_rules(summary.get("matched_records", []), args.incremental_rules_out)
     print(f"Wrote summary to {summary['summary_path']}")
+    return 0
+
+
+def init_command(args: argparse.Namespace) -> int:
+    workspace = get_workspace_home()
+    print(f"Initialized workspace at {workspace}")
+    return 0
+
+
+def where_command(args: argparse.Namespace) -> int:
+    workspace = get_workspace_home()
+    print(workspace)
     return 0
 
 
@@ -39,6 +52,7 @@ def pipeline_command(args: argparse.Namespace) -> int:
         args.out_dir,
         args.ledger,
         args.n,
+        args.strict,
     )
     print(f"Wrote pipeline summary to {summary['summary_path']}")
     return 0
@@ -47,6 +61,12 @@ def pipeline_command(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="agiwb")
     subparsers = parser.add_subparsers(dest="command")
+
+    init_parser = subparsers.add_parser("init", help="Initialize local workspace")
+    init_parser.set_defaults(func=init_command)
+
+    where_parser = subparsers.add_parser("where", help="Show workspace location")
+    where_parser.set_defaults(func=where_command)
 
     eval_parser = subparsers.add_parser("eval", help="Run evaluation on an eval set")
     eval_parser.add_argument("--eval-file", required=True, help="Path to eval JSONL file")
@@ -74,7 +94,7 @@ def build_parser() -> argparse.ArgumentParser:
     synth_parser = subparsers.add_parser("synth", help="Generate synthetic eval cases")
     synth_parser.add_argument("--ledger", required=True, help="SQLite ledger path")
     synth_parser.add_argument("--out", required=True, help="Output path for synthetic JSONL")
-    synth_parser.add_argument("--n", type=int, default=5, help="Number of synthetic cases to emit")
+    synth_parser.add_argument("--n", type=int, default=20, help="Number of synthetic cases to emit")
     synth_parser.set_defaults(func=synth_command)
 
     pipeline_parser = subparsers.add_parser("pipeline", help="Run full evaluation pipeline")
@@ -82,7 +102,10 @@ def build_parser() -> argparse.ArgumentParser:
     pipeline_parser.add_argument("--seed-rules", required=True, help="Seed rules YAML path")
     pipeline_parser.add_argument("--out-dir", required=True, help="Output directory for pipeline")
     pipeline_parser.add_argument("--ledger", required=True, help="SQLite ledger path")
-    pipeline_parser.add_argument("--n", type=int, default=5, help="Number of synthetic cases")
+    pipeline_parser.add_argument("--n", type=int, default=20, help="Number of synthetic cases")
+    pipeline_parser.add_argument(
+        "--strict", action="store_true", help="Fail pipeline if synth outputs zero cases"
+    )
     pipeline_parser.set_defaults(func=pipeline_command)
 
     return parser

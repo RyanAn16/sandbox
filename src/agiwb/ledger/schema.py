@@ -10,14 +10,14 @@ CREATE TABLE IF NOT EXISTS runs (
 );
 """
 
-CASES_TABLE = """
-CREATE TABLE IF NOT EXISTS cases (
+EVENTS_TABLE = """
+CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     run_id TEXT NOT NULL,
-    case_id TEXT NOT NULL,
+    test_id TEXT NOT NULL,
     text TEXT NOT NULL,
+    rule_id TEXT,
     matched INTEGER NOT NULL,
-    matched_rule_ids TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 """

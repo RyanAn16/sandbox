@@ -50,7 +50,7 @@ def run_eval(
 
     with LedgerStore(ledger) as store:
         store.add_run(run_id, results["total"], results["matched"])
-        store.add_cases(run_id, results["case_results"])
+        store.add_events(run_id, results["event_results"])
 
     summary["summary_path"] = str(summary_path)
     summary["matched_records"] = results.get("matched_records", [])
@@ -63,30 +63,28 @@ def run_pipeline(
     out_dir: str | Path,
     ledger: str | Path,
     n: int,
+    strict: bool = False,
 ) -> Dict[str, Any]:
     out_dir = Path(out_dir)
     seed_dir = out_dir / "seed"
     round2_dir = out_dir / "round2"
     incremental_rules_path = out_dir / "incremental_rules.yaml"
-    synth_path = out_dir / "synth.jsonl"
+    synth_path = out_dir / "synth_tests.jsonl"
 
     seed_summary = run_eval(seed_eval, [seed_rules], seed_dir, ledger)
     induction_stats = induce_rules(ledger, seed_rules, incremental_rules_path)
     synth_stats = synthesize_cases(ledger, synth_path, n)
 
-    round2_summary = None
-    round2_reason = None
-    if synth_stats["generated"] == 0 or synth_path.stat().st_size == 0:
-        round2_reason = "synth output empty"
-    else:
-        round2_summary = run_eval(synth_path, [seed_rules, incremental_rules_path], round2_dir, ledger)
+    if strict and synth_stats["generated"] == 0:
+        raise RuntimeError("No synthetic tests generated")
+
+    round2_summary = run_eval(synth_path, [seed_rules, incremental_rules_path], round2_dir, ledger)
 
     summary = {
         "seed": seed_summary,
         "induce": induction_stats,
         "synth": synth_stats,
         "round2": round2_summary,
-        "round2_skip_reason": round2_reason,
     }
     summary_path = _write_summary(out_dir, summary)
     summary["summary_path"] = str(summary_path)
