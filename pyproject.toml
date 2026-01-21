@@ -12,4 +12,10 @@ dependencies = ["pyyaml"]
 
 [tool.setuptools]
 package-dir = {"" = "src", "app" = "app"}
-packages = ["agiwb", "agiwb.reflection", "agiwb.rules", "agiwb.ledger", "app"]
+packages = [
+    "agiwb",
+    "agiwb.reflection",
+    "agiwb.rules",
+    "agiwb.ledger",
+    "app",
+]

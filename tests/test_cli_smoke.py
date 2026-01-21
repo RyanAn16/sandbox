@@ -67,6 +67,37 @@ class TestCliSmoke(unittest.TestCase):
             summary = json.loads(summary_path.read_text(encoding="utf-8"))
             self.assertEqual(summary["total"], 2)
 
+    def test_pipeline_smoke(self):
+        eval_file = self.root / "domains" / "finance_cashflow" / "eval" / "seed_test.jsonl"
+        rules_file = self.root / "rulesets" / "seed_rules.yaml"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            out_dir = Path(tmpdir) / "pipeline"
+            ledger_path = Path(tmpdir) / "ledger" / "runs.sqlite"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "agiwb.cli",
+                    "pipeline",
+                    "--seed",
+                    str(eval_file),
+                    "--seed-rules",
+                    str(rules_file),
+                    "--out-dir",
+                    str(out_dir),
+                    "--ledger",
+                    str(ledger_path),
+                    "--n",
+                    "5",
+                ],
+                env=self.env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((out_dir / "summary.json").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

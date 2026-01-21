@@ -21,8 +21,10 @@ def load_rules(paths: Iterable[str | Path]) -> List[Dict[str, Any]]:
             payload = payload.get("rules", [])
         if not isinstance(payload, list):
             raise ValueError(f"Rules file {path_obj} must contain a list or 'rules' key")
-        for rule in payload:
+        for index, rule in enumerate(payload, start=1):
             if not isinstance(rule, dict):
                 raise ValueError(f"Rule entry must be a mapping in {path_obj}")
+            rule = dict(rule)
+            rule.setdefault("id", f"{path_obj.stem}-{index}")
             rules.append(rule)
     return rules

@@ -26,17 +26,33 @@ def match_rule(rule: Dict[str, Any], record: Dict[str, Any]) -> bool:
     return _match_contains(rule, record) or _match_equals(rule, record)
 
 
+def matched_rule_ids(rules: List[Dict[str, Any]], record: Dict[str, Any]) -> List[str]:
+    return [rule["id"] for rule in rules if match_rule(rule, record)]
+
+
 def evaluate_records(records: Iterable[Dict[str, Any]], rules: List[Dict[str, Any]]) -> Dict[str, Any]:
     total = 0
     matched = 0
     matched_records: List[Dict[str, Any]] = []
-    for record in records:
+    case_results: List[Dict[str, Any]] = []
+    for index, record in enumerate(records, start=1):
         total += 1
-        if any(match_rule(rule, record) for rule in rules):
+        rule_ids = matched_rule_ids(rules, record)
+        is_matched = bool(rule_ids)
+        if is_matched:
             matched += 1
             matched_records.append(record)
+        case_results.append(
+            {
+                "case_id": record.get("id", f"case-{index}"),
+                "text": record.get("text", ""),
+                "matched": is_matched,
+                "matched_rule_ids": rule_ids,
+            }
+        )
     return {
         "total": total,
         "matched": matched,
         "matched_records": matched_records,
+        "case_results": case_results,
     }

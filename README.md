@@ -21,6 +21,17 @@ python -m agiwb.cli eval \
   --ledger data/ledger/runs.sqlite
 ```
 
+Pipeline loop:
+
+```bash
+python -m agiwb.cli pipeline \
+  --seed domains/finance_cashflow/eval/seed_test.jsonl \
+  --seed-rules rulesets/seed_rules.yaml \
+  --out-dir data/pipeline \
+  --ledger data/ledger/runs.sqlite \
+  --n 5
+```
+
 Legacy compatibility:
 
 ```bash

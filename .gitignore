@@ -2,8 +2,10 @@
 __pycache__/
 *.pyc
 data/
-ledger/
-reports/
-reports_round2/
+/ledger/
 *.sqlite
+*.egg-info/
+reports/
+reports*/
+/ledger/*.sqlite
 .DS_Store

@@ -2,57 +2,45 @@
 from __future__ import annotations
 
 import argparse
-import json
-from pathlib import Path
-from typing import Iterable, Dict, Any
-import uuid
 
-from agiwb.rules.loader import load_rules
-from agiwb.rules.engine import evaluate_records
-from agiwb.ledger.store import LedgerStore
-from agiwb.reflection.rule_induction import write_incremental_rules
-
-
-def _load_eval_records(path: str | Path) -> Iterable[Dict[str, Any]]:
-    eval_path = Path(path)
-    with eval_path.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            line = line.strip()
-            if not line:
-                continue
-            yield json.loads(line)
-
-
-def _write_summary(out_dir: str | Path, summary: Dict[str, Any]) -> Path:
-    out_path = Path(out_dir)
-    out_path.mkdir(parents=True, exist_ok=True)
-    summary_path = out_path / "summary.json"
-    with summary_path.open("w", encoding="utf-8") as handle:
-        json.dump(summary, handle, indent=2, sort_keys=True)
-    return summary_path
+from agiwb.pipeline import run_eval, run_pipeline
+from agiwb.reflection.rule_induction import write_incremental_rules, induce_rules
+from agiwb.reflection.synth import synthesize_cases
 
 
 def eval_command(args: argparse.Namespace) -> int:
-    rules = load_rules([args.rules])
-    records = list(_load_eval_records(args.eval_file))
-    results = evaluate_records(records, rules)
-    run_id = str(uuid.uuid4())
-    summary = {
-        "run_id": run_id,
-        "total": results["total"],
-        "matched": results["matched"],
-        "eval_file": str(args.eval_file),
-        "rules": str(args.rules),
-    }
-    summary_path = _write_summary(args.out, summary)
-
-    with LedgerStore(args.ledger) as store:
-        store.add_run(run_id, results["total"], results["matched"])
-
+    summary = run_eval(args.eval_file, [args.rules], args.out, args.ledger)
     if args.write_incremental:
-        write_incremental_rules(results["matched_records"], args.incremental_rules_out)
+        write_incremental_rules(summary.get("matched_records", []), args.incremental_rules_out)
+    print(f"Wrote summary to {summary['summary_path']}")
+    return 0
 
-    print(f"Wrote summary to {summary_path}")
+
+def induce_command(args: argparse.Namespace) -> int:
+    results = induce_rules(args.ledger, args.seed_rules, args.out)
+    print(
+        "Induction results: candidates={candidates}, approved={approved}, saved={saved}, out={out}".format(
+            **results
+        )
+    )
+    return 0
+
+
+def synth_command(args: argparse.Namespace) -> int:
+    results = synthesize_cases(args.ledger, args.out, args.n)
+    print(f"Synth results: generated={results['generated']} out={results['out']}")
+    return 0
+
+
+def pipeline_command(args: argparse.Namespace) -> int:
+    summary = run_pipeline(
+        args.seed,
+        args.seed_rules,
+        args.out_dir,
+        args.ledger,
+        args.n,
+    )
+    print(f"Wrote pipeline summary to {summary['summary_path']}")
     return 0
 
 
@@ -76,6 +64,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write incremental rules based on matched records",
     )
     eval_parser.set_defaults(func=eval_command)
+
+    induce_parser = subparsers.add_parser("induce", help="Induce incremental rules from ledger")
+    induce_parser.add_argument("--ledger", required=True, help="SQLite ledger path")
+    induce_parser.add_argument("--seed-rules", required=True, help="Seed rules YAML path")
+    induce_parser.add_argument("--out", required=True, help="Output path for induced rules YAML")
+    induce_parser.set_defaults(func=induce_command)
+
+    synth_parser = subparsers.add_parser("synth", help="Generate synthetic eval cases")
+    synth_parser.add_argument("--ledger", required=True, help="SQLite ledger path")
+    synth_parser.add_argument("--out", required=True, help="Output path for synthetic JSONL")
+    synth_parser.add_argument("--n", type=int, default=5, help="Number of synthetic cases to emit")
+    synth_parser.set_defaults(func=synth_command)
+
+    pipeline_parser = subparsers.add_parser("pipeline", help="Run full evaluation pipeline")
+    pipeline_parser.add_argument("--seed", required=True, help="Seed eval JSONL path")
+    pipeline_parser.add_argument("--seed-rules", required=True, help="Seed rules YAML path")
+    pipeline_parser.add_argument("--out-dir", required=True, help="Output directory for pipeline")
+    pipeline_parser.add_argument("--ledger", required=True, help="SQLite ledger path")
+    pipeline_parser.add_argument("--n", type=int, default=5, help="Number of synthetic cases")
+    pipeline_parser.set_defaults(func=pipeline_command)
 
     return parser
 

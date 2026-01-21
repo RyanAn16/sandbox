@@ -1,0 +1,23 @@
+"""SQLite schema definitions."""
+
+RUNS_TABLE = """
+CREATE TABLE IF NOT EXISTS runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT NOT NULL,
+    total INTEGER NOT NULL,
+    matched INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+"""
+
+CASES_TABLE = """
+CREATE TABLE IF NOT EXISTS cases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT NOT NULL,
+    case_id TEXT NOT NULL,
+    text TEXT NOT NULL,
+    matched INTEGER NOT NULL,
+    matched_rule_ids TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+"""
