@@ -1,0 +1,6 @@
+- id: cashflow-positive
+  contains: "positive cash flow"
+  field: text
+- id: payment-received
+  contains: "payment received"
+  field: text

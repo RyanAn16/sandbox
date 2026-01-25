@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+data/
+/ledger/
+*.sqlite
+*.egg-info/
+reports/
+reports*/
+/ledger/*.sqlite
+.DS_Store
