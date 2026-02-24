@@ -37,6 +37,19 @@ def build_parser() -> argparse.ArgumentParser:
     research_local_parser.add_argument("--db", default="evidence.sqlite", help="SQLite DB path")
     research_local_parser.add_argument("--top-k", type=int, default=5, help="Top k rows")
     research_local_parser.add_argument("--out-dir", default="outputs", help="Output directory")
+    research_local_parser.add_argument(
+        "--dedup",
+        dest="dedup",
+        action="store_true",
+        default=True,
+        help="Deduplicate duplicate chunks by text_hash",
+    )
+    research_local_parser.add_argument(
+        "--no-dedup",
+        dest="dedup",
+        action="store_false",
+        help="Deduplicate duplicate chunks by text_hash",
+    )
     research_local_parser.set_defaults(func=cmd_research_local)
 
     return parser
@@ -65,7 +78,12 @@ def cmd_research_local(args: argparse.Namespace) -> int:
     db = EvidenceDB(db_path)
     db.init()
 
-    rows = search_chunks_keyword(db_path=db_path, query=args.query, top_k=args.top_k)
+    rows = search_chunks_keyword(
+        db_path=db_path,
+        query=args.query,
+        top_k=args.top_k,
+        dedup=args.dedup,
+    )
     if not rows:
         print("No evidence found for query. Try broader keywords.")
         return 4
@@ -82,6 +100,7 @@ def cmd_research_local(args: argparse.Namespace) -> int:
     previews = [" ".join(row["text"].split())[:80] for row in rows[:3]]
     print(f"run_id={run_id}")
     print(f"output_path={output_path}")
+    print(f"dedup={args.dedup}")
     print(f"top_chunk_ids={top_chunk_ids}")
     for i, preview in enumerate(previews, start=1):
         print(f"preview_{i}={preview}")
