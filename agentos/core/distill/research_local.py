@@ -2,13 +2,13 @@ from __future__ import annotations
 
 
 def _preview(text: str, limit: int = 180) -> str:
-    compact = " ".join(text.split())
+    compact = " ".join((text or "").split())
     if len(compact) <= limit:
         return compact
     return compact[: limit - 3] + "..."
 
 
-def _short_hash(value: str | None) -> str:
+def _short_text_hash(value: str | None) -> str:
     if not value:
         return "n/a"
     return value[:12]
@@ -25,12 +25,12 @@ def build_research_markdown(query: str, rows: list[dict]) -> str:
 
     lines.append("## Draft answer")
     lines.append("")
-    seen_excerpt: set[str] = set()
+    seen_excerpts: set[str] = set()
     for row in rows[:3]:
-        excerpt = _preview(row["text"])
-        if excerpt in seen_excerpt:
+        excerpt = _preview(row.get("text", ""))
+        if excerpt in seen_excerpts:
             continue
-        seen_excerpt.add(excerpt)
+        seen_excerpts.add(excerpt)
         lines.append(f"- [chunk_id={row['chunk_id']}] {excerpt}")
     if not rows:
         lines.append("- No evidence found.")
@@ -41,8 +41,8 @@ def build_research_markdown(query: str, rows: list[dict]) -> str:
     for row in rows:
         lines.append(
             f"- chunk_id={row['chunk_id']} | snapshot_id={row['snapshot_id']} | "
-            f"text_hash={_short_hash(row.get('text_hash'))} | url={row['url']}"
+            f"text_hash={_short_text_hash(row.get('text_hash'))} | url={row['url']}"
         )
-        lines.append(f"  - preview: {_preview(row['text'])}")
+        lines.append(f"  - preview: {_preview(row.get('text', ''))}")
 
     return "\n".join(lines) + "\n"
