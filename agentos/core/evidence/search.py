@@ -6,6 +6,7 @@ from pathlib import Path
 
 
 def _has_column(conn: sqlite3.Connection, table: str, column: str) -> bool:
+    """Return True when a SQLite table contains a given column."""
     info = conn.execute(f"PRAGMA table_info({table})").fetchall()
     return any(row[1] == column for row in info)
 

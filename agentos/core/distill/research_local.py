@@ -9,6 +9,7 @@ def _preview(text: str, limit: int = 180) -> str:
 
 
 def _short_text_hash(value: str | None) -> str:
+    """Render a short text hash for display."""
     if not value:
         return "n/a"
     return value[:12]
