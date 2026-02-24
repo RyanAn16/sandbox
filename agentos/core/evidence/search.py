@@ -83,13 +83,16 @@ def search_chunks_keyword(
     if dedup:
         deduped: dict[str, dict] = {}
         for row in scored:
-            key = row.get("text_hash") or f"__chunk_{row['chunk_id']}"
+            text_hash = row.get("text_hash")
+            key = text_hash or f"__chunk_{row['chunk_id']}"
             existing = deduped.get(key)
             if existing is None:
                 deduped[key] = row
-            elif row["score"] > existing["score"]:
+                continue
+            if row["score"] > existing["score"]:
                 deduped[key] = row
-            elif row["score"] == existing["score"] and row["snapshot_id"] > existing["snapshot_id"]:
+                continue
+            if row["score"] == existing["score"] and row["snapshot_id"] > existing["snapshot_id"]:
                 deduped[key] = row
         scored = list(deduped.values())
 

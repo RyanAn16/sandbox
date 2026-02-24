@@ -68,12 +68,12 @@ def cmd_research_local(
     top_chunk_ids = [row["chunk_id"] for row in rows[:3]]
     previews = [" ".join((row.get("text") or "").split())[:80] for row in rows[:3]]
 
-    print(f"run_id={run_id}")
-    print(f"output_path={output_path}")
-    print(f"dedup={dedup}")
-    print(f"top_chunk_ids={top_chunk_ids}")
+    typer.echo(f"run_id={run_id}")
+    typer.echo(f"output_path={output_path}")
+    typer.echo(f"dedup={dedup}")
+    typer.echo(f"top_chunk_ids={top_chunk_ids}")
     for i, preview in enumerate(previews, start=1):
-        print(f"preview_{i}={preview}")
+        typer.echo(f"preview_{i}={preview}")
 
 
 def main(argv: list[str] | None = None) -> int:
